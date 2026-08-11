@@ -17,6 +17,17 @@ dependencies = [
 [project.optional-dependencies]
 test = ["pytest>=8.0"]
 cuda = ["cmake>=3.26", "ninja", "pybind11>=2.13"]
+inference = [
+  "accelerate>=1.0",
+  "diffusers>=0.35",
+  "huggingface-hub>=0.27",
+  "imageio-ffmpeg>=0.5",
+  "pillow>=10.0",
+  "transformers>=4.48",
+]
+
+[project.scripts]
+sparsepr-infer = "sparsepr.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sparsepr", "src/flash_kmeans"]

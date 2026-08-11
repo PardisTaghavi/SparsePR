@@ -16,10 +16,10 @@ completed.
 ## Install
 
 Use Python 3.11+, PyTorch 2.5+, CUDA 12.4/12.8, Triton, and a compatible
-FlashInfer build. Then install SparsePR in editable mode:
+FlashInfer build. Install SparsePR in editable mode:
 
 ```bash
-pip install -e ".[test,cuda]"
+pip install -e ".[test,cuda,inference]"
 ```
 
 Build the optional fused CUDA kernels with:
@@ -30,18 +30,32 @@ cmake -S src/sparsepr/kernels/n8_ext -B src/sparsepr/kernels/n8_ext/build \
 cmake --build src/sparsepr/kernels/n8_ext/build -j
 ```
 
-Model-specific inference commands will live in `examples/`. Checkpoints are
-downloaded from their official providers and are never stored in this repository.
+## Inference
+
+All integrations use one interface. Checkpoints come from their official Hugging
+Face repositories and are never stored here.
 
 ```bash
-python examples/hunyuanvideo_t2v.py --prompt "..." --output out.mp4
-python examples/wan22_i2v.py --wan-root /path/to/Wan2.2 \
-  --checkpoint /path/to/Wan2.2-I2V-A14B --image input.jpg --prompt "..."
-python examples/cosmos_predict2.py --cosmos-root /path/to/cosmos-predict2.5 \
-  --image input.jpg --prompt "..."
-python examples/cosmos3_nano.py --model /path/to/Cosmos3-Nano-16B \
-  --image input.jpg --prompt "..."
+sparsepr-infer \
+  --model cosmos3-nano-16b \
+  --prompt "A robot walking through a forest" \
+  --image input.png \
+  --output output.mp4
 ```
+
+Select `--attention dense` for the baseline or `--attention sparsepr` for the
+method. `--offload` is enabled by default. Wan2.2 and Cosmos-Predict2.5 use their
+official source trees:
+
+```bash
+export SPARSEPR_WAN_ROOT=/path/to/Wan2.2
+export SPARSEPR_WAN_CHECKPOINT=/path/to/Wan2.2-I2V-A14B
+export SPARSEPR_COSMOS25_ROOT=/path/to/cosmos-predict2.5
+```
+
+On one A100 40 GB, start with Cosmos-Predict2.5 or Cosmos3-Nano. HunyuanVideo
+requires reduced resolution and Wan2.2 full inference may require an 80 GB GPU.
+Use `--dry-run` to validate a command without loading weights.
 
 ## Layout
 
