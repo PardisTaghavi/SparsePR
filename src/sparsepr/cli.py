@@ -434,7 +434,7 @@ def _run_cosmos3(request: InferenceRequest) -> None:
     with torch.inference_mode():
         result = pipe(
             prompt=request.prompt,
-            image=load_image(request.image),
+            image=load_image(str(request.image)),
             height=request.height,
             width=request.width,
             num_frames=request.frames,
