@@ -40,12 +40,15 @@ class Cosmos3Config:
 def apply_cosmos3_rotary(
     tensor: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor
 ) -> torch.Tensor:
-    """Apply Cosmos3's real-valued pairwise rotary embedding."""
+    """Apply Diffusers Cosmos3's half-split rotary embedding."""
     original_dtype = tensor.dtype
-    tensor_f = tensor.float().reshape(*tensor.shape[:-1], -1, 2)
-    rotated = torch.stack((-tensor_f[..., 1], tensor_f[..., 0]), dim=-1)
-    rotated = rotated.flatten(-2)
-    return (tensor.float() * cos + rotated * sin).to(original_dtype)
+    half = tensor.shape[-1] // 2
+    rotated = torch.cat((-tensor[..., half:], tensor[..., :half]), dim=-1)
+    cos = cos.unsqueeze(1)
+    sin = sin.unsqueeze(1)
+    return (
+        tensor.float() * cos.float() + rotated.float() * sin.float()
+    ).to(original_dtype)
 
 
 def _expand_gqa(
