@@ -5,7 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from sparsepr.cli import MODEL_IDS, build_parser, main, resolve_request
+from sparsepr.cli import (
+    MODEL_IDS,
+    _cosmos25_sparse_config,
+    build_parser,
+    main,
+    resolve_request,
+)
 
 
 def test_supported_model_registry_is_exact() -> None:
@@ -82,3 +88,9 @@ def test_wan_paths_can_come_from_environment(
     assert request.source_root == source
     assert request.checkpoint == checkpoint
     assert request.size == "832*480"
+
+
+def test_cosmos25_reduced_step_profile_index_is_valid() -> None:
+    config = _cosmos25_sparse_config(3)
+    assert config["dense_first_steps"] == 2
+    assert config["profile_step"] == 2

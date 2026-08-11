@@ -320,6 +320,23 @@ def _run_wan22(request: InferenceRequest) -> None:
     )
 
 
+def _cosmos25_sparse_config(steps: int) -> dict[str, object]:
+    return {
+        "total_layers": 36,
+        "total_steps": steps,
+        "forwards_per_step": 2,
+        "dense_first_steps": min(2, steps),
+        "dense_first_layers": 1,
+        "target_density": 0.22,
+        "num_q_centroids": 300,
+        "num_k_centroids": 1000,
+        "probe_rows": 64,
+        "repair_rank": 16,
+        "route_refresh_every": 4,
+        "profile_step": min(3, steps - 1),
+    }
+
+
 def _run_cosmos_predict2(request: InferenceRequest) -> None:
     assert request.source_root is not None
     assert request.image is not None
@@ -351,23 +368,7 @@ def _run_cosmos_predict2(request: InferenceRequest) -> None:
         env = os.environ.copy()
         if request.attention == "sparsepr":
             config = temp_root / "config.json"
-            config.write_text(
-                json.dumps(
-                    {
-                        "total_layers": 36,
-                        "total_steps": request.steps,
-                        "forwards_per_step": 2,
-                        "dense_first_steps": 2,
-                        "dense_first_layers": 1,
-                        "target_density": 0.22,
-                        "num_q_centroids": 300,
-                        "num_k_centroids": 1000,
-                        "probe_rows": 64,
-                        "repair_rank": 16,
-                        "route_refresh_every": 4,
-                    }
-                )
-            )
+            config.write_text(json.dumps(_cosmos25_sparse_config(request.steps)))
             env["SPARSEPR_COSMOS_PREDICT2_CONFIG"] = str(config)
             env["PYTHONPATH"] = os.pathsep.join(
                 (str(hook_root), str(source_root), env.get("PYTHONPATH", ""))
