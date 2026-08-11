@@ -1,0 +1,10 @@
+model = "Cosmos-Predict2.5-14B"
+steps = 35
+dense_first_steps = 2
+dense_first_layers = 1
+target_density = 0.22
+query_centroids = 300
+key_centroids = 1000
+probe_rows = 64
+repair_rank = 16
+route_refresh_every = 4

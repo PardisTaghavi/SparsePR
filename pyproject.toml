@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sparsepr"
+version = "0.1.0"
+description = "Training-free sparse attention for video generation and world models"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "packaging>=24.0",
+  "torch>=2.5",
+  "triton>=3.1",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0"]
+cuda = ["cmake>=3.26", "ninja", "pybind11>=2.13"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sparsepr", "src/flash_kmeans"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

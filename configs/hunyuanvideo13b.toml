@@ -1,0 +1,14 @@
+model = "tencent/HunyuanVideo"
+revision = "refs/pr/18"
+height = 720
+width = 1280
+frames = 129
+steps = 50
+guidance_scale = 6.0
+dense_first_step_fraction = 0.10
+dense_first_layer_fraction = 0.03
+target_density = 0.22
+query_centroids = 300
+key_centroids = 1000
+probe_rows = 64
+repair_rank = 16

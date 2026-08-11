@@ -1,0 +1,9 @@
+model = "Wan-AI/Wan2.2-I2V-A14B"
+size = "1280*720"
+dense_first_step_fraction = 0.20
+dense_first_layer_fraction = 0.03
+target_density = 0.22
+query_centroids = 300
+key_centroids = 1000
+probe_rows = 64
+repair_rank = 16
