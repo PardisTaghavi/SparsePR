@@ -1,5 +1,12 @@
 model = "Cosmos-Predict2.5-14B"
+revision = "2bc4ca5ba5a20b9858a7ddb856bc82d70b030fbe"
+source_revision = "aacbf4865d69c43a891cfda88e1a9bfcfd31d094"
+height = 704
+width = 1280
+frames = 93
+fps = 16
 steps = 35
+guidance_scale = 7.0
 dense_first_steps = 2
 dense_first_layers = 1
 target_density = 0.22

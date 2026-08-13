@@ -7,7 +7,7 @@ name = "sparsepr"
 version = "0.1.0"
 description = "Training-free sparse attention for video generation and world models"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
   "packaging>=24.0",
   "torch>=2.5",
@@ -22,6 +22,7 @@ inference = [
   "diffusers>=0.35",
   "huggingface-hub>=0.27",
   "imageio-ffmpeg>=0.5",
+  "librosa>=0.10.2,<0.12",
   "pillow>=10.0",
   "transformers>=4.48",
 ]
@@ -34,7 +35,7 @@ packages = ["src/sparsepr", "src/flash_kmeans"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py310"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

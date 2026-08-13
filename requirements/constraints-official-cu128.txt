@@ -1,0 +1,12 @@
+accelerate==1.11.0
+cmake==4.4.2
+diffusers==0.35.2
+easydict==1.13
+huggingface-hub==0.36.0
+librosa==0.11.0
+pybind11==3.0.4
+safetensors==0.6.2
+torch==2.7.0
+torchvision==0.22.0
+transformers==4.51.3
+triton==3.3.0

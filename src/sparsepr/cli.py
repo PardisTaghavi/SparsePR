@@ -22,11 +22,16 @@ MODEL_IDS = {
     "cosmos-predict2.5-14b": "nvidia/Cosmos-Predict2.5-14B",
     "cosmos3-nano-16b": "nvidia/Cosmos3-Nano",
 }
+MODEL_REVISIONS = {
+    "hunyuanvideo-13b": "2a15b5574ee77888e51ae6f593b2ceed8ce813e5",
+    "cosmos3-nano-16b": "411f42a8fdfb8c5b2583cb8786e0938f49796eaa",
+}
 IMAGE_MODELS = {
     "wan2.2-i2v-a14b",
     "cosmos-predict2.5-14b",
     "cosmos3-nano-16b",
 }
+COSMOS3_FLOW_SHIFT = 10.0
 
 
 @dataclass(frozen=True)
@@ -49,7 +54,7 @@ class InferenceRequest:
     steps: int
     fps: int
     guidance_scale: float
-    size: str
+    size: str | None
     offload: bool
 
     def public_dict(self) -> dict[str, object]:
@@ -69,9 +74,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--prompt", required=True)
     parser.add_argument("--image", type=Path)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument(
-        "--attention", choices=("dense", "sparsepr"), default="sparsepr"
-    )
+    parser.add_argument("--attention", choices=("dense", "sparsepr"), default="sparsepr")
     parser.add_argument("--model-id")
     parser.add_argument(
         "--source-root",
@@ -89,9 +92,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--width", type=int)
     parser.add_argument("--frames", type=int)
     parser.add_argument("--steps", type=int)
-    parser.add_argument("--fps", type=int, default=24)
+    parser.add_argument("--fps", type=int)
     parser.add_argument("--guidance-scale", type=float)
-    parser.add_argument("--size", default="832*480")
+    parser.add_argument("--size", help="Wan2.2 output preset, such as 832*480 or 1280*720.")
     parser.add_argument(
         "--offload",
         action=argparse.BooleanOptionalAction,
@@ -111,16 +114,14 @@ def _environment_path(name: str) -> Path | None:
     return Path(value).expanduser() if value else None
 
 
-def resolve_request(
-    args: argparse.Namespace, parser: argparse.ArgumentParser
-) -> InferenceRequest:
+def resolve_request(args: argparse.Namespace, parser: argparse.ArgumentParser) -> InferenceRequest:
     defaults = {
-        "hunyuanvideo-13b": (544, 960, 129, 50, 6.0),
-        "wan2.2-i2v-a14b": (480, 832, 81, 40, 5.0),
-        "cosmos-predict2.5-14b": (704, 1280, 77, 35, 7.0),
-        "cosmos3-nano-16b": (480, 832, 81, 35, 7.0),
+        "hunyuanvideo-13b": (720, 1280, 129, 50, 6.0, 24),
+        "wan2.2-i2v-a14b": (720, 1280, 81, 40, 3.5, 16),
+        "cosmos-predict2.5-14b": (704, 1280, 93, 35, 7.0, 16),
+        "cosmos3-nano-16b": (720, 1280, 189, 35, 6.0, 24),
     }
-    height, width, frames, steps, guidance = defaults[args.model]
+    height, width, frames, steps, guidance, fps = defaults[args.model]
     image = args.image.expanduser().resolve() if args.image else None
     if args.model in IMAGE_MODELS and image is None:
         parser.error(f"--image is required for {args.model}")
@@ -139,9 +140,7 @@ def resolve_request(
     elif args.model == "cosmos-predict2.5-14b":
         source_root = source_root or _environment_path("SPARSEPR_COSMOS25_ROOT")
         if source_root is None:
-            parser.error(
-                "set --source-root or SPARSEPR_COSMOS25_ROOT for Cosmos-Predict2.5"
-            )
+            parser.error("set --source-root or SPARSEPR_COSMOS25_ROOT for Cosmos-Predict2.5")
 
     source_root = source_root.expanduser().resolve() if source_root else None
     checkpoint = checkpoint.expanduser().resolve() if checkpoint else None
@@ -159,17 +158,15 @@ def resolve_request(
         model_id=args.model_id or MODEL_IDS[args.model],
         source_root=source_root,
         checkpoint=checkpoint,
-        revision=args.revision,
+        revision=args.revision or MODEL_REVISIONS.get(args.model),
         seed=args.seed,
-        height=args.height or height,
-        width=args.width or width,
-        frames=args.frames or frames,
-        steps=args.steps or steps,
-        fps=args.fps,
-        guidance_scale=(
-            args.guidance_scale if args.guidance_scale is not None else guidance
-        ),
-        size=args.size,
+        height=args.height if args.height is not None else height,
+        width=args.width if args.width is not None else width,
+        frames=args.frames if args.frames is not None else frames,
+        steps=args.steps if args.steps is not None else steps,
+        fps=args.fps if args.fps is not None else fps,
+        guidance_scale=(args.guidance_scale if args.guidance_scale is not None else guidance),
+        size=(args.size or "1280*720") if args.model == "wan2.2-i2v-a14b" else None,
         offload=args.offload,
     )
     for name in ("height", "width", "frames", "steps", "fps"):
@@ -177,6 +174,10 @@ def resolve_request(
             parser.error(f"--{name} must be positive")
     if request.output.suffix.lower() != ".mp4":
         parser.error("--output must end in .mp4")
+    if args.model == "cosmos-predict2.5-14b" and request.fps != 16:
+        parser.error("Cosmos-Predict2.5 official inference writes 16 FPS output")
+    if args.model == "cosmos-predict2.5-14b" and request.frames != 93:
+        parser.error("Cosmos-Predict2.5-14B has a fixed 93-frame output")
     return request
 
 
@@ -205,7 +206,8 @@ def _run_hunyuanvideo(request: InferenceRequest) -> None:
         install_hunyuanvideo,
     )
 
-    revision = request.revision or "refs/pr/18"
+    assert request.revision is not None
+    revision = request.revision
     transformer = HunyuanVideoTransformer3DModel.from_pretrained(
         request.model_id,
         subfolder="transformer",
@@ -250,6 +252,22 @@ def _run_hunyuanvideo(request: InferenceRequest) -> None:
     export_to_video(result.frames[0], str(request.output), fps=request.fps)
 
 
+def _wan22_sparse_options(total_layers: int, steps: int) -> dict[str, object]:
+    return {
+        "pattern": "N8_custom_v6",
+        "first_layers_fp": max(1, math.floor(0.03 * total_layers)),
+        "first_sparse_forward": math.floor(0.20 * steps),
+        "n8_target_density": 0.22,
+        "n8_probe_rows": 64,
+        "n8_repair_rank": 16,
+        "kmeans_iter_init": 25,
+        "kmeans_iter_step": 2,
+        "n8_selector_policy": "attention_mass",
+        "block_fusion": True,
+        "cfg_layer0_reuse": True,
+    }
+
+
 def _run_wan22(request: InferenceRequest) -> None:
     from PIL import Image
 
@@ -264,6 +282,7 @@ def _run_wan22(request: InferenceRequest) -> None:
     task = "i2v-A14B"
     model_config = WAN_CONFIGS[task]
     steps = request.steps or int(model_config.sample_steps)
+    assert request.size is not None
     if request.attention == "sparsepr":
         from sparsepr.adapters.wan22 import (
             Wan22TI2VSparseConfig,
@@ -272,16 +291,7 @@ def _run_wan22(request: InferenceRequest) -> None:
 
         total_layers = int(model_config.num_layers)
         install_wan22_ti2v_sparse_patch(
-            Wan22TI2VSparseConfig(
-                pattern="N8_custom_v6",
-                first_layers_fp=max(1, math.floor(0.03 * total_layers)),
-                first_sparse_forward=math.floor(0.20 * steps),
-                n8_target_density=0.22,
-                n8_probe_rows=64,
-                n8_repair_rank=16,
-                kmeans_iter_init=25,
-                kmeans_iter_step=2,
-            )
+            Wan22TI2VSparseConfig(**_wan22_sparse_options(total_layers, steps))
         )
     if request.size not in MAX_AREA_CONFIGS:
         choices = ", ".join(sorted(MAX_AREA_CONFIGS))
@@ -337,6 +347,20 @@ def _cosmos25_sparse_config(steps: int) -> dict[str, object]:
     }
 
 
+def _cosmos25_manifest_entry(request: InferenceRequest) -> dict[str, object]:
+    return {
+        "name": "sparsepr_sample",
+        "prompt": request.prompt,
+        "inference_type": "image2world",
+        "input_path": str(request.image),
+        "seed": request.seed,
+        "guidance": request.guidance_scale,
+        "resolution": f"{request.height},{request.width}",
+        "num_output_frames": request.frames,
+        "num_steps": request.steps,
+    }
+
+
 def _run_cosmos_predict2(request: InferenceRequest) -> None:
     assert request.source_root is not None
     assert request.image is not None
@@ -350,26 +374,16 @@ def _run_cosmos_predict2(request: InferenceRequest) -> None:
         temp_root = Path(temp)
         manifest = temp_root / "input.jsonl"
         output_dir = temp_root / "output"
-        manifest.write_text(
-            json.dumps(
-                {
-                    "name": "sparsepr_sample",
-                    "prompt": request.prompt,
-                    "inference_type": "image2world",
-                    "input_path": str(request.image),
-                    "seed": request.seed,
-                    "guidance": request.guidance_scale,
-                    "num_output_frames": request.frames,
-                    "num_steps": request.steps,
-                }
-            )
-            + "\n"
-        )
+        manifest.write_text(json.dumps(_cosmos25_manifest_entry(request)) + "\n")
         env = os.environ.copy()
+        use_hook = request.offload or request.attention == "sparsepr"
+        if request.offload:
+            env["SPARSEPR_COSMOS25_CPU_MATERIALIZATION"] = "1"
         if request.attention == "sparsepr":
             config = temp_root / "config.json"
             config.write_text(json.dumps(_cosmos25_sparse_config(request.steps)))
             env["SPARSEPR_COSMOS_PREDICT2_CONFIG"] = str(config)
+        if use_hook:
             env["PYTHONPATH"] = os.pathsep.join(
                 (str(hook_root), str(source_root), env.get("PYTHONPATH", ""))
             )
@@ -415,12 +429,13 @@ def _run_cosmos3(request: InferenceRequest) -> None:
     assert request.image is not None
     pipe = Cosmos3OmniPipeline.from_pretrained(
         request.model_id,
+        revision=request.revision,
         torch_dtype=torch.bfloat16,
         safety_checker=None,
         enable_safety_checker=False,
     )
     pipe.scheduler = UniPCMultistepScheduler.from_config(
-        pipe.scheduler.config, flow_shift=7.0
+        pipe.scheduler.config, flow_shift=COSMOS3_FLOW_SHIFT
     )
     _place_pipeline(pipe, request.offload)
     if request.attention == "sparsepr":
