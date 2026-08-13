@@ -1,8 +1,9 @@
 model = "tencent/HunyuanVideo"
-revision = "refs/pr/18"
+revision = "2a15b5574ee77888e51ae6f593b2ceed8ce813e5"
 height = 720
 width = 1280
 frames = 129
+fps = 24
 steps = 50
 guidance_scale = 6.0
 dense_first_step_fraction = 0.10

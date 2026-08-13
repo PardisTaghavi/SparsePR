@@ -1,4 +1,12 @@
 model = "Cosmos3-Nano-16B"
+revision = "411f42a8fdfb8c5b2583cb8786e0938f49796eaa"
+height = 720
+width = 1280
+num_frames = 189
+fps = 24
+num_inference_steps = 35
+guidance_scale = 6.0
+flow_shift = 10.0
 target_density = 0.22
 query_centroids = 300
 key_centroids = 1000

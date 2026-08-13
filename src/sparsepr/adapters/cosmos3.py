@@ -26,7 +26,7 @@ from sparsepr.models.common import N8V6Config, N8V6Core
 class Cosmos3Config:
     """Frozen SparsePR settings for Cosmos3-Nano-16B."""
 
-    guidance_scale: float = 7.0
+    guidance_scale: float = 6.0
     num_inference_steps: int = 35
     dense_first_layers: int = 1
     dense_first_steps: int = 2
@@ -46,14 +46,10 @@ def apply_cosmos3_rotary(
     rotated = torch.cat((-tensor[..., half:], tensor[..., :half]), dim=-1)
     cos = cos.unsqueeze(1)
     sin = sin.unsqueeze(1)
-    return (
-        tensor.float() * cos.float() + rotated.float() * sin.float()
-    ).to(original_dtype)
+    return (tensor.float() * cos.float() + rotated.float() * sin.float()).to(original_dtype)
 
 
-def _expand_gqa(
-    tensor: torch.Tensor, query_heads: int, key_value_heads: int
-) -> torch.Tensor:
+def _expand_gqa(tensor: torch.Tensor, query_heads: int, key_value_heads: int) -> torch.Tensor:
     if query_heads == key_value_heads:
         return tensor
     group_size = query_heads // key_value_heads
@@ -150,9 +146,7 @@ class Cosmos3N8Processor:
         self.n8_config = n8_config
         self.query_heads = query_heads
         self.key_value_heads = key_value_heads
-        self.gqa_group_size = (
-            query_heads // key_value_heads if gqa_key_sharing else 1
-        )
+        self.gqa_group_size = query_heads // key_value_heads if gqa_key_sharing else 1
         self.cores: dict[int, N8V6Core] = {}
 
     def _core(self, cfg_branch: int) -> N8V6Core:
@@ -193,10 +187,7 @@ class Cosmos3N8Processor:
         v_und = _expand_gqa(v_und, heads, kv_heads)
         k_gen = _expand_gqa(k_gen, heads, kv_heads)
         v_gen = _expand_gqa(v_gen, heads, kv_heads)
-        return tuple(
-            _nhd_to_bhnd(tensor)
-            for tensor in (q_und, k_und, v_und, q_gen, k_gen, v_gen)
-        )
+        return tuple(_nhd_to_bhnd(tensor) for tensor in (q_und, k_und, v_und, q_gen, k_gen, v_gen))
 
     @staticmethod
     def _append_understanding_cluster(
@@ -216,12 +207,8 @@ class Cosmos3N8Processor:
             value=False,
         )
         block_map[..., -1] = True
-        query_sizes = F.pad(
-            query_sizes.view(batch, heads, query_clusters), (0, 1), value=0
-        )
-        key_sizes = F.pad(
-            key_sizes.view(batch, heads, key_clusters), (0, 1), value=0
-        )
+        query_sizes = F.pad(query_sizes.view(batch, heads, query_clusters), (0, 1), value=0)
+        key_sizes = F.pad(key_sizes.view(batch, heads, key_clusters), (0, 1), value=0)
         query_sizes[..., -1] = understanding_tokens
         key_sizes[..., -1] = understanding_tokens
         return block_map, query_sizes, key_sizes
@@ -237,9 +224,7 @@ class Cosmos3N8Processor:
         q_und, k_und, v_und, q_gen, k_gen, v_gen = self._project_qkv(
             attn, und_seq, gen_seq, rotary_emb
         )
-        und_out = F.scaled_dot_product_attention(
-            q_und, k_und, v_und, dropout_p=0.0, is_causal=True
-        )
+        und_out = F.scaled_dot_product_attention(q_und, k_und, v_und, dropout_p=0.0, is_causal=True)
 
         if self.runtime.use_dense(self.layer_idx, call["step"]):
             k_full = torch.cat((k_und, k_gen), dim=2)
@@ -293,8 +278,7 @@ class Cosmos3N8Processor:
             gen_out, _ = core.repair(base, q_gen, k_full, v_full, route)
             density = min(
                 1.0,
-                float(route.base_video_density)
-                + core.config.probe_rows / float(gen_tokens),
+                float(route.base_video_density) + core.config.probe_rows / float(gen_tokens),
             )
             mode = "sparsepr"
 
@@ -310,9 +294,7 @@ def install_cosmos3(pipe: Any, *, config: Cosmos3Config) -> int:
     if not hasattr(pipe, "transformer"):
         raise TypeError("Expected a Cosmos3 pipeline with a transformer attribute.")
     modules = [
-        module
-        for _, module in pipe.transformer.named_modules()
-        if is_cosmos3_attention(module)
+        module for _, module in pipe.transformer.named_modules() if is_cosmos3_attention(module)
     ]
     if not modules:
         raise RuntimeError("No Cosmos3 generation-attention modules were found.")
