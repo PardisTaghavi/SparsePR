@@ -5,6 +5,8 @@
 SparsePR is the reference implementation of training-free sparse attention with
 response-coupled partitioning and probe-fitted residual reconstruction.
 
+![SparsePR method and four-model showcase](assets/sparsepr-showcase.gif)
+
 Supported integrations:
 
 - HunyuanVideo-13B (text-to-video)
