@@ -9,9 +9,7 @@ response-coupled partitioning and probe-fitted residual reconstruction.
   <strong>Hugging Face</strong>
 </p>
 
-<p align="center">
-  <img src="assets/sparsepr-showcase.gif" alt="SparsePR method and four-model showcase" width="100%">
-</p>
+https://github.com/user-attachments/assets/6d27e6a6-a0e6-43f0-bccb-ee3be4161f9b
 
 Supported integrations:
 
