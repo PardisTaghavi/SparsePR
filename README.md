@@ -1,9 +1,13 @@
 # SparsePR
 
-![SparsePR](assets/sparsepr-hero.png)
-
 SparsePR is the reference implementation of training-free sparse attention with
 response-coupled partitioning and probe-fitted residual reconstruction.
+
+<p align="center">
+  <strong>arXiv</strong> &nbsp;·&nbsp;
+  <strong>Website</strong> &nbsp;·&nbsp;
+  <strong>Hugging Face</strong>
+</p>
 
 ![SparsePR method and four-model showcase](assets/sparsepr-showcase.gif)
 
