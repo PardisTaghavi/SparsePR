@@ -5,7 +5,7 @@ response-coupled partitioning and probe-fitted residual reconstruction.
 
 <p align="center">
   <strong>arXiv</strong> &nbsp;·&nbsp;
-  <strong>Website</strong> &nbsp;·&nbsp;
+  <a href="https://pardistaghavi.github.io/SparsePR-website/"><strong>Project website</strong></a> &nbsp;·&nbsp;
   <strong>Hugging Face</strong>
 </p>
 
