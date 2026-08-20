@@ -4,7 +4,7 @@ SparsePR is the reference implementation of training-free sparse attention with
 response-coupled partitioning and probe-fitted residual reconstruction.
 
 <p align="center">
-  <strong>arXiv</strong> &nbsp;·&nbsp;
+  <a href="https://arxiv.org/abs/2608.18484"><strong>arXiv</strong></a> &nbsp;·&nbsp;
   <a href="https://pardistaghavi.github.io/SparsePR-website/"><strong>Project website</strong></a> &nbsp;·&nbsp;
   <strong>Hugging Face</strong>
 </p>
